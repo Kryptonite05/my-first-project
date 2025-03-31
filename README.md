@@ -8,38 +8,48 @@ import java.util.Scanner;
 public class PayrollSystem {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
-      
+
         // User input for basic pay (monthly salary)
         System.out.print("Enter basic pay (monthly salary): PHP ");
         double basicPay = scanner.nextDouble();
-        
+
         // User input for hourly rate
         System.out.print("Enter hourly rate: PHP ");
         double hourlyRate = scanner.nextDouble();
         scanner.nextLine(); // Consume newline
-        
-        final double LUNCH_BREAK_HOURS = 1.0; // Fixed lunch break deduction
-        
+
+        // User input for additional allowances
+        System.out.print("Enter Rice Subsidy (monthly): PHP ");
+        double riceSubsidy = scanner.nextDouble();
+
+        System.out.print("Enter Phone Allowance (monthly): PHP ");
+        double phoneAllowance = scanner.nextDouble();
+
+        System.out.print("Enter Clothing Allowance (monthly): PHP ");
+        double clothingAllowance = scanner.nextDouble();
+
+        scanner.nextLine(); // Consume newline
+
+        final double LUNCH_BREAK_HOURS = 1.0;
+
         String[] days = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"};
         double totalWeeklySalary = 0;
-        
+
         for (String day : days) {
             System.out.println("\n" + day);
-            
+
             // User input for time in
             System.out.print("Enter time in (HH:MM): ");
             LocalTime timeIn = parseTime(scanner.nextLine());
-            
+
             // User input for time out
             System.out.print("Enter time out (HH:MM): ");
             LocalTime timeOut = parseTime(scanner.nextLine());
-            
-            // Compute total worked hours
+
+            // Compute total worked hours after lunch break deduction
             Duration duration = Duration.between(timeIn, timeOut);
             long hoursWorked = duration.toHours();
             long minutesWorked = duration.toMinutes() % 60;
-
-            // Convert minutes to fraction of an hour
             double totalWorkedHours = (hoursWorked + (minutesWorked / 60.0)) - LUNCH_BREAK_HOURS;
 
             // Ensure no negative hours
@@ -47,33 +57,39 @@ public class PayrollSystem {
                 totalWorkedHours = 0;
             }
 
-            // Compute daily salary using totalWorkedHours
+            // Compute daily salary using totalWorkedHours (AFTER lunch break deduction)
             double dailySalary = totalWorkedHours * hourlyRate;
             totalWeeklySalary += dailySalary;
 
             // Display daily results
             System.out.println("Time In: " + timeIn);
             System.out.println("Time Out: " + timeOut);
-            System.out.println("Total Hours Worked: " + totalWorkedHours);
+            System.out.println("Total Hours Worked: " + hoursWorked);
+            System.out.println("Total Minutes Worked: " + minutesWorked);
             System.out.println("Salary for " + day + ": PHP " + String.format("%.2f", dailySalary));
         }
-        
+
         scanner.close();
-        
+
         // Compute deductions
         double annualSalary = basicPay * 12; // Convert monthly salary to annual salary
         double tax = computeTax(annualSalary); // Compute tax based on full annual salary
-        
+
         // Compute PhilHealth (5% of monthly salary, min ₱500, max ₱2,500)
         double philHealth = Math.max(500, Math.min(2500, (basicPay * 0.05)));
-        
+
         // Compute SSS (15% of monthly salary)
         double sss = basicPay * 0.15;
-        
+
         // Compute Pag-IBIG (2% of monthly salary)
         double pagIbig = basicPay * 0.02;
-        
-        double netSalary = totalWeeklySalary - (tax / 52); // Tax still applied weekly
+
+        // Compute Net Monthly Salary
+        double totalMonthlyDeductions = (tax / 12) + philHealth + sss + pagIbig;
+        double netMonthlySalary = basicPay + riceSubsidy + phoneAllowance + clothingAllowance - totalMonthlyDeductions;
+
+        // Compute net weekly salary (before monthly allowances are applied)
+        double netWeeklySalary = totalWeeklySalary - (tax / 52);
 
         // Display weekly summary
         System.out.println("\nWeekly Payroll Summary");
@@ -84,9 +100,17 @@ public class PayrollSystem {
         System.out.println("- PhilHealth (5% monthly): PHP " + String.format("%.2f", philHealth));
         System.out.println("- SSS (15% monthly): PHP " + String.format("%.2f", sss));
         System.out.println("- Pag-IBIG (2% monthly): PHP " + String.format("%.2f", pagIbig));
-        System.out.println("\nNet Weekly Salary (Before Monthly Deductions): PHP " + String.format("%.2f", netSalary));
+
+        // Display Allowances
+        System.out.println("\nMonthly Allowances:");
+        System.out.println("- Rice Subsidy: PHP " + String.format("%.2f", riceSubsidy));
+        System.out.println("- Phone Allowance: PHP " + String.format("%.2f", phoneAllowance));
+        System.out.println("- Clothing Allowance: PHP " + String.format("%.2f", clothingAllowance));
+
+        System.out.println("\nNet Monthly Salary (After Deductions and Allowances): PHP " + String.format("%.2f", netMonthlySalary));
+        System.out.println("Net Weekly Salary (Before Monthly Allowances): PHP " + String.format("%.2f", netWeeklySalary));
     }
-    
+
     // Method to compute tax based on annual salary
     private static double computeTax(double annualSalary) {
         if (annualSalary <= 250000) {
